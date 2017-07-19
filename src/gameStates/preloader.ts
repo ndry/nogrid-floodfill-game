@@ -23,7 +23,8 @@
         }
 
         startMainMenu() {
-            this.game.state.start('MainMenu', true, false);
+            //this.game.state.start('MainMenu', true, false);
+            this.game.state.start('Level01', true, false);
         }
 
     }
