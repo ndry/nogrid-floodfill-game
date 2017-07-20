@@ -10,7 +10,7 @@
             this.state.add('MainMenu', MainMenu, false);
             this.state.add('Level01', Level01, false);
 
-            this.state.start('Boot');
+            this.state.start('Level01');
 
         }
     }

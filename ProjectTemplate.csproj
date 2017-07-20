@@ -36,9 +36,7 @@
     <Content Include="build\assets\sounds\click.ogg" />
     <Content Include="build\assets\sprites\level01-sprites.json" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="src\utils\" />
-  </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <TypeScriptCompile Include="src\game.ts" />
     <TypeScriptCompile Include="src\gameObjects\tree.ts" />
@@ -47,6 +45,7 @@
     <TypeScriptCompile Include="src\gameStates\level01.ts" />
     <TypeScriptCompile Include="src\gameStates\mainMenu.ts" />
     <TypeScriptCompile Include="src\gameStates\preloader.ts" />
+    <TypeScriptCompile Include="src\utils\utils.ts" />
     <TypeScriptCompile Include="tsDefinitions\p2.d.ts" />
     <TypeScriptCompile Include="tsDefinitions\phaser.comments.d.ts" />
     <TypeScriptCompile Include="tsDefinitions\pixi.comments.d.ts" />

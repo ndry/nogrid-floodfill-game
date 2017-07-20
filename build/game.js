@@ -20,7 +20,7 @@ var $safeprojectname$;
                 _this.state.add('Preloader', Client.Preloader, false);
                 _this.state.add('MainMenu', Client.MainMenu, false);
                 _this.state.add('Level01', Client.Level01, false);
-                _this.state.start('Boot');
+                _this.state.start('Level01');
                 return _this;
             }
             return GameEngine;
@@ -159,13 +159,51 @@ var $safeprojectname$;
             function Level01() {
                 return _super !== null && _super.apply(this, arguments) || this;
             }
+            Level01.prototype.preload = function () {
+                _super.prototype.preload.call(this);
+                this.load.image('map1', './assets/maps/map1.png');
+                this.load.image('map1-mask', './assets/maps/map1-mask.png');
+            };
             Level01.prototype.create = function () {
                 this.physics.startSystem(Phaser.Physics.ARCADE);
-                this.background = this.add.sprite(0, 0, 'level01-sprites', 'background');
+                this.map = this.add.sprite(0, 0, 'map1');
+                this.mapMaskBmd = this.game.make.bitmapData(this.map.width, this.map.height);
+                this.mapMaskBmd.draw('map1-mask', 0, 0);
+                this.mapMaskBmd.update();
                 this.player = new Client.Player(this.game, this.world.centerX, this.world.centerX);
                 this.player.anchor.setTo(0, 5);
-                var tree = new Client.Tree(this.game, 100, 100, new Client.TreeColor("green"), 30);
-                tree.owner = this.player;
+                this.treeColors = [
+                    new Client.TreeColor("green"),
+                    new Client.TreeColor("yellow"),
+                    new Client.TreeColor("white"),
+                    new Client.TreeColor("orange"),
+                    new Client.TreeColor("pink")
+                ];
+                this.trees = [];
+                var failedCount = 0;
+                var _loop_1 = function () {
+                    var x = Math.floor(this_1.map.x + this_1.map.width * Math.random());
+                    var y = Math.floor(this_1.map.y + this_1.map.height * Math.random());
+                    var size = 4 + 10 * Math.random();
+                    var color = Client.getRandomElement(this_1.treeColors);
+                    var maskAllowed = this_1.mapMaskBmd.getPixel32(x, y) === 4278190080;
+                    var treesAllowed = this_1.trees
+                        .filter(function (t) { return t.position.distance(new Phaser.Point(x, y)) < (t.size + size); })
+                        .length === 0;
+                    if (maskAllowed && treesAllowed) {
+                        failedCount = 0;
+                        var tree = new Client.Tree(this_1.game, x, y, color, size);
+                        this_1.trees.push(tree);
+                    }
+                    else {
+                        failedCount++;
+                    }
+                };
+                var this_1 = this;
+                while (failedCount < 500) {
+                    _loop_1();
+                }
+                this.trees[0].owner = this.player;
                 this.game.debug.text("Use Right and Left arrow keys to move the bat", 0, this.world.height, "red");
             };
             return Level01;
@@ -228,11 +266,21 @@ var $safeprojectname$;
                 tween.onComplete.add(this.startMainMenu, this);
             };
             Preloader.prototype.startMainMenu = function () {
-                this.game.state.start('Level01', true, false);
+                this.game.state.start('MainMenu', true, false);
             };
             return Preloader;
         }(Phaser.State));
         Client.Preloader = Preloader;
+    })(Client = $safeprojectname$.Client || ($safeprojectname$.Client = {}));
+})($safeprojectname$ || ($safeprojectname$ = {}));
+var $safeprojectname$;
+(function ($safeprojectname$) {
+    var Client;
+    (function (Client) {
+        function getRandomElement(array) {
+            return array[Math.floor(Math.random() * array.length)];
+        }
+        Client.getRandomElement = getRandomElement;
     })(Client = $safeprojectname$.Client || ($safeprojectname$.Client = {}));
 })($safeprojectname$ || ($safeprojectname$ = {}));
 //# sourceMappingURL=game.js.map
