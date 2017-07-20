@@ -16,6 +16,7 @@
         playerScores: Phaser.Text[];
 
         treeColors: TreeColor[];
+        treeColorButtons: Phaser.Sprite[];
         trees: Tree[];
 
         fullScore: number;
@@ -24,7 +25,7 @@
             this.physics.startSystem(Phaser.Physics.ARCADE);
 
             this.map = this.add.sprite(0, 0, 'map1');
-            
+
             this.mapMaskBmd = this.game.make.bitmapData(this.map.width, this.map.height);
             this.mapMaskBmd.draw('map1-mask', 0, 0);
             this.mapMaskBmd.update();
@@ -52,7 +53,8 @@
                 let maskAllowed = this.mapMaskBmd.getPixel32(x, y) === 4278190080;
                 let treesAllowed = this.trees
                     .filter(t => t.position.distance(new Phaser.Point(x, y)) < (t.size + size))
-                    .length === 0;
+                    .length ===
+                    0;
 
                 if (maskAllowed && treesAllowed) {
                     failedCount = 0;
@@ -118,6 +120,26 @@
                     (player.score(null) / this.fullScore * 100).toPrecision(2) + "%",
                     { font: "20px Tahoma", fill: player.color, align: "right" }));
 
+            this.treeColorButtons = this.treeColors.map((color, i) => {
+                const bitmapData = this.game.add.bitmapData(50, 50);
+
+                bitmapData.context.beginPath();
+                bitmapData.context.fillStyle = color.color;
+                bitmapData.context.rect(0, 0, bitmapData.width, bitmapData.height);
+                bitmapData.context.fill();
+
+                this.game.cache.addBitmapData("btn" + i, bitmapData);
+
+                const btn = this.game.add.sprite(this.game.width - 80,
+                    100 + i * 70,
+                    bitmapData);
+                btn.inputEnabled = true;
+                btn.events.onInputUp.add(() => { this.playerTurn(color); }, this);
+               
+                return btn;
+            });
+
+
             this.game.input.keyboard.addKey(Phaser.Keyboard.ONE).onDown.add(() => this.playerTurn(this.treeColors[0]));
             this.game.input.keyboard.addKey(Phaser.Keyboard.TWO).onDown.add(() => this.playerTurn(this.treeColors[1]));
             this.game.input.keyboard.addKey(Phaser.Keyboard.THREE).onDown.add(() => this.playerTurn(this.treeColors[2]));
@@ -127,7 +149,7 @@
 
         playerTurn(color: TreeColor) {
             this.humanPlayer.turn(color);
-            console.log(this.humanPlayer.score(null));
+            this.players[1].turn(getRandomElement(this.treeColors));
 
             this.players.map((player, i) =>
                 this.playerScores[i].text = (player.score(null) / this.fullScore * 100).toPrecision(2) + "%");

@@ -22,50 +22,6 @@ var $safeprojectname$;
 (function ($safeprojectname$) {
     var Client;
     (function (Client) {
-        class Player {
-            constructor(game, color) {
-                this.game = game;
-                this.color = color;
-                this.baseTrees = [];
-            }
-            walkTrees(fn) {
-                const visited = new Set();
-                const queue = this.baseTrees.slice();
-                while (queue.length > 0) {
-                    const tree = queue.shift();
-                    if (visited.has(tree)) {
-                        continue;
-                    }
-                    visited.add(tree);
-                    fn(tree)
-                        .forEach(t => queue.push(t));
-                }
-            }
-            turn(color) {
-                this.walkTrees(tree => {
-                    tree.owner = this;
-                    tree.color = color;
-                    return tree.neighbours
-                        .filter(t => (t.color === color && t.owner === null) || (t.owner === this));
-                });
-            }
-            score(color) {
-                let score = 0;
-                this.walkTrees(tree => {
-                    score += tree.score;
-                    return tree.neighbours
-                        .filter(t => (t.color === color && t.owner === null) || (t.owner === this));
-                });
-                return score;
-            }
-        }
-        Client.Player = Player;
-    })(Client = $safeprojectname$.Client || ($safeprojectname$.Client = {}));
-})($safeprojectname$ || ($safeprojectname$ = {}));
-var $safeprojectname$;
-(function ($safeprojectname$) {
-    var Client;
-    (function (Client) {
         class TreeColor {
             constructor(color) {
                 this.color = color;
@@ -115,6 +71,50 @@ var $safeprojectname$;
             }
         }
         Client.Tree = Tree;
+    })(Client = $safeprojectname$.Client || ($safeprojectname$.Client = {}));
+})($safeprojectname$ || ($safeprojectname$ = {}));
+var $safeprojectname$;
+(function ($safeprojectname$) {
+    var Client;
+    (function (Client) {
+        class Player {
+            constructor(game, color) {
+                this.game = game;
+                this.color = color;
+                this.baseTrees = [];
+            }
+            walkTrees(fn) {
+                const visited = new Set();
+                const queue = this.baseTrees.slice();
+                while (queue.length > 0) {
+                    const tree = queue.shift();
+                    if (visited.has(tree)) {
+                        continue;
+                    }
+                    visited.add(tree);
+                    fn(tree)
+                        .forEach(t => queue.push(t));
+                }
+            }
+            turn(color) {
+                this.walkTrees(tree => {
+                    tree.owner = this;
+                    tree.color = color;
+                    return tree.neighbours
+                        .filter(t => (t.color === color && t.owner === null) || (t.owner === this));
+                });
+            }
+            score(color) {
+                let score = 0;
+                this.walkTrees(tree => {
+                    score += tree.score;
+                    return tree.neighbours
+                        .filter(t => (t.color === color && t.owner === null) || (t.owner === this));
+                });
+                return score;
+            }
+        }
+        Client.Player = Player;
     })(Client = $safeprojectname$.Client || ($safeprojectname$.Client = {}));
 })($safeprojectname$ || ($safeprojectname$ = {}));
 var $safeprojectname$;
@@ -181,7 +181,8 @@ var $safeprojectname$;
                     let maskAllowed = this.mapMaskBmd.getPixel32(x, y) === 4278190080;
                     let treesAllowed = this.trees
                         .filter(t => t.position.distance(new Phaser.Point(x, y)) < (t.size + size))
-                        .length === 0;
+                        .length ===
+                        0;
                     if (maskAllowed && treesAllowed) {
                         failedCount = 0;
                         const tree = new Client.Tree(this.game, x, y, color, size);
@@ -223,6 +224,18 @@ var $safeprojectname$;
                     player.turn(player.baseTrees[0].color);
                 });
                 this.playerScores = this.players.map((player, i) => this.game.add.text(this.game.width - 80, 10 + i * 25, (player.score(null) / this.fullScore * 100).toPrecision(2) + "%", { font: "20px Tahoma", fill: player.color, align: "right" }));
+                this.treeColorButtons = this.treeColors.map((color, i) => {
+                    const bitmapData = this.game.add.bitmapData(50, 50);
+                    bitmapData.context.beginPath();
+                    bitmapData.context.fillStyle = color.color;
+                    bitmapData.context.rect(0, 0, bitmapData.width, bitmapData.height);
+                    bitmapData.context.fill();
+                    this.game.cache.addBitmapData("btn" + i, bitmapData);
+                    const btn = this.game.add.sprite(this.game.width - 80, 100 + i * 70, bitmapData);
+                    btn.inputEnabled = true;
+                    btn.events.onInputUp.add(() => { this.playerTurn(color); }, this);
+                    return btn;
+                });
                 this.game.input.keyboard.addKey(Phaser.Keyboard.ONE).onDown.add(() => this.playerTurn(this.treeColors[0]));
                 this.game.input.keyboard.addKey(Phaser.Keyboard.TWO).onDown.add(() => this.playerTurn(this.treeColors[1]));
                 this.game.input.keyboard.addKey(Phaser.Keyboard.THREE).onDown.add(() => this.playerTurn(this.treeColors[2]));
@@ -231,7 +244,7 @@ var $safeprojectname$;
             }
             playerTurn(color) {
                 this.humanPlayer.turn(color);
-                console.log(this.humanPlayer.score(null));
+                this.players[1].turn(Client.getRandomElement(this.treeColors));
                 this.players.map((player, i) => this.playerScores[i].text = (player.score(null) / this.fullScore * 100).toPrecision(2) + "%");
             }
         }
