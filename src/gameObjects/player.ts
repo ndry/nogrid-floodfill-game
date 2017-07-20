@@ -2,7 +2,7 @@
 
     export class Player {
         game: Phaser.Game;
-        color: Style;
+        color: string;
         baseTrees: Tree[];
 
         constructor(game: Phaser.Game) {

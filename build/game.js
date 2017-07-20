@@ -30,7 +30,7 @@ var $safeprojectname$;
         Client.TreeColor = TreeColor;
         class Tree extends Phaser.Sprite {
             constructor(game, x, y, color, size) {
-                let bitmapData = game.add.bitmapData(50, 50);
+                let bitmapData = game.add.bitmapData(100, 100);
                 super(game, x, y, bitmapData);
                 this.bitmapData = bitmapData;
                 this.color = color;
@@ -44,8 +44,16 @@ var $safeprojectname$;
             update() {
                 const centerX = this.bitmapData.width / 2;
                 const centerY = this.bitmapData.height / 2;
+                this.bitmapData.cls();
                 this.bitmapData.context.beginPath();
-                this.bitmapData.context.fillStyle = this.color.color;
+                this.bitmapData.context.fillStyle = "rgba(0, 0, 0, .3)";
+                this.bitmapData.context.arc(centerX + this.size / 2, centerY + this.size / 2, this.size, 0, Math.PI * 2);
+                this.bitmapData.context.fill();
+                var gradient = this.bitmapData.context.createRadialGradient(centerX - this.size / 2, centerY - this.size / 2, 0, centerX - this.size / 2, centerY - this.size / 2, this.size * 4);
+                gradient.addColorStop(0, this.color.color);
+                gradient.addColorStop(1, 'black');
+                this.bitmapData.context.beginPath();
+                this.bitmapData.context.fillStyle = gradient;
                 this.bitmapData.context.strokeStyle = this.owner ? this.owner.color : "#000000";
                 this.bitmapData.context.arc(centerX, centerY, this.size, 0, Math.PI * 2);
                 this.bitmapData.context.fill();
