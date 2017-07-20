@@ -4,7 +4,7 @@ var $safeprojectname$;
     (function (Client) {
         class GameEngine extends Phaser.Game {
             constructor() {
-                super(888, 804, Phaser.AUTO, 'content', null);
+                super(888 + 100, 804, Phaser.AUTO, 'content', null);
                 this.state.add('Boot', Client.Boot, false);
                 this.state.add('Preloader', Client.Preloader, false);
                 this.state.add('MainMenu', Client.MainMenu, false);
@@ -18,6 +18,50 @@ var $safeprojectname$;
 window.onload = () => {
     new $safeprojectname$.Client.GameEngine();
 };
+var $safeprojectname$;
+(function ($safeprojectname$) {
+    var Client;
+    (function (Client) {
+        class Player {
+            constructor(game, color) {
+                this.game = game;
+                this.color = color;
+                this.baseTrees = [];
+            }
+            walkTrees(fn) {
+                const visited = new Set();
+                const queue = this.baseTrees.slice();
+                while (queue.length > 0) {
+                    const tree = queue.shift();
+                    if (visited.has(tree)) {
+                        continue;
+                    }
+                    visited.add(tree);
+                    fn(tree)
+                        .forEach(t => queue.push(t));
+                }
+            }
+            turn(color) {
+                this.walkTrees(tree => {
+                    tree.owner = this;
+                    tree.color = color;
+                    return tree.neighbours
+                        .filter(t => (t.color === color && t.owner === null) || (t.owner === this));
+                });
+            }
+            score(color) {
+                let score = 0;
+                this.walkTrees(tree => {
+                    score += tree.score;
+                    return tree.neighbours
+                        .filter(t => (t.color === color && t.owner === null) || (t.owner === this));
+                });
+                return score;
+            }
+        }
+        Client.Player = Player;
+    })(Client = $safeprojectname$.Client || ($safeprojectname$.Client = {}));
+})($safeprojectname$ || ($safeprojectname$ = {}));
 var $safeprojectname$;
 (function ($safeprojectname$) {
     var Client;
@@ -38,6 +82,7 @@ var $safeprojectname$;
                 this.owner = null;
                 this.neighbours = [];
                 this.highlighted = false;
+                this.score = this.size * this.size * Math.PI;
                 this.anchor.setTo(0.5);
                 game.add.existing(this);
             }
@@ -70,36 +115,6 @@ var $safeprojectname$;
             }
         }
         Client.Tree = Tree;
-    })(Client = $safeprojectname$.Client || ($safeprojectname$.Client = {}));
-})($safeprojectname$ || ($safeprojectname$ = {}));
-var $safeprojectname$;
-(function ($safeprojectname$) {
-    var Client;
-    (function (Client) {
-        class Player {
-            constructor(game) {
-                this.game = game;
-                this.color = "red";
-                this.baseTrees = [];
-            }
-            turn(color) {
-                let visited = new Set();
-                let queue = this.baseTrees.slice();
-                while (queue.length > 0) {
-                    const tree = queue.shift();
-                    if (visited.has(tree)) {
-                        continue;
-                    }
-                    visited.add(tree);
-                    tree.owner = this;
-                    tree.color = color;
-                    tree.neighbours
-                        .filter(t => (t.color === color && t.owner === null) || (t.owner === this))
-                        .forEach(t => queue.push(t));
-                }
-            }
-        }
-        Client.Player = Player;
     })(Client = $safeprojectname$.Client || ($safeprojectname$.Client = {}));
 })($safeprojectname$ || ($safeprojectname$ = {}));
 var $safeprojectname$;
@@ -147,7 +162,8 @@ var $safeprojectname$;
                 this.mapMaskBmd = this.game.make.bitmapData(this.map.width, this.map.height);
                 this.mapMaskBmd.draw('map1-mask', 0, 0);
                 this.mapMaskBmd.update();
-                this.player = new Client.Player(this.game);
+                this.humanPlayer = new Client.Player(this.game, "red");
+                this.players = [this.humanPlayer, new Client.Player(this.game, "blue")];
                 this.treeColors = [
                     new Client.TreeColor("green"),
                     new Client.TreeColor("yellow"),
@@ -201,14 +217,22 @@ var $safeprojectname$;
                         t.neighbours.push(tree);
                     });
                 });
-                this.player.baseTrees.push(this.trees[0]);
-                this.player.turn(this.trees[0].color);
-                this.game.debug.text("Use Right and Left arrow keys to move the bat", 0, this.world.height, "red");
-                this.game.input.keyboard.addKey(Phaser.Keyboard.ONE).onDown.add(() => this.player.turn(this.treeColors[0]));
-                this.game.input.keyboard.addKey(Phaser.Keyboard.TWO).onDown.add(() => this.player.turn(this.treeColors[1]));
-                this.game.input.keyboard.addKey(Phaser.Keyboard.THREE).onDown.add(() => this.player.turn(this.treeColors[2]));
-                this.game.input.keyboard.addKey(Phaser.Keyboard.FOUR).onDown.add(() => this.player.turn(this.treeColors[3]));
-                this.game.input.keyboard.addKey(Phaser.Keyboard.FIVE).onDown.add(() => this.player.turn(this.treeColors[4]));
+                this.fullScore = this.trees.map(t => t.score).reduce((p, c) => p + c, 0);
+                this.players.forEach(player => {
+                    player.baseTrees.push(Client.getRandomElement(this.trees));
+                    player.turn(player.baseTrees[0].color);
+                });
+                this.playerScores = this.players.map((player, i) => this.game.add.text(this.game.width - 80, 10 + i * 25, (player.score(null) / this.fullScore * 100).toPrecision(2) + "%", { font: "20px Tahoma", fill: player.color, align: "right" }));
+                this.game.input.keyboard.addKey(Phaser.Keyboard.ONE).onDown.add(() => this.playerTurn(this.treeColors[0]));
+                this.game.input.keyboard.addKey(Phaser.Keyboard.TWO).onDown.add(() => this.playerTurn(this.treeColors[1]));
+                this.game.input.keyboard.addKey(Phaser.Keyboard.THREE).onDown.add(() => this.playerTurn(this.treeColors[2]));
+                this.game.input.keyboard.addKey(Phaser.Keyboard.FOUR).onDown.add(() => this.playerTurn(this.treeColors[3]));
+                this.game.input.keyboard.addKey(Phaser.Keyboard.FIVE).onDown.add(() => this.playerTurn(this.treeColors[4]));
+            }
+            playerTurn(color) {
+                this.humanPlayer.turn(color);
+                console.log(this.humanPlayer.score(null));
+                this.players.map((player, i) => this.playerScores[i].text = (player.score(null) / this.fullScore * 100).toPrecision(2) + "%");
             }
         }
         Client.Level01 = Level01;

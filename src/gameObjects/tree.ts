@@ -15,6 +15,7 @@
         owner?: Player;
         neighbours: Tree[];
         highlighted: boolean;
+        score: number;
 
         constructor(game: Phaser.Game, x: number, y: number, color: TreeColor, size: number) {
             let bitmapData = game.add.bitmapData(100, 100);
@@ -26,6 +27,8 @@
             this.owner = null;
             this.neighbours = [];
             this.highlighted = false;
+
+            this.score = this.size * this.size * Math.PI;
 
             this.anchor.setTo(0.5);
             game.add.existing(this);

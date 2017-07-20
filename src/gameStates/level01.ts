@@ -11,10 +11,14 @@
         map: Phaser.Sprite;
         mapMaskBmd: Phaser.BitmapData;
 
-        player: Player;
+        humanPlayer: Player;
+        players: Player[];
+        playerScores: Phaser.Text[];
 
         treeColors: TreeColor[];
         trees: Tree[];
+
+        fullScore: number;
 
         create() {
             this.physics.startSystem(Phaser.Physics.ARCADE);
@@ -25,7 +29,8 @@
             this.mapMaskBmd.draw('map1-mask', 0, 0);
             this.mapMaskBmd.update();
 
-            this.player = new Player(this.game);
+            this.humanPlayer = new Player(this.game, "red");
+            this.players = [this.humanPlayer, new Player(this.game, "blue")];
 
             this.treeColors = [
                 new TreeColor("green"),
@@ -99,16 +104,33 @@
                     });
             });
 
-            this.player.baseTrees.push(this.trees[0]);
-            this.player.turn(this.trees[0].color);
+            this.fullScore = this.trees.map(t => t.score).reduce((p, c) => p + c, 0);
 
-            this.game.debug.text("Use Right and Left arrow keys to move the bat", 0, this.world.height, "red");
+            this.players.forEach(player => {
+                player.baseTrees.push(getRandomElement(this.trees));
+                player.turn(player.baseTrees[0].color);
+            });
 
-            this.game.input.keyboard.addKey(Phaser.Keyboard.ONE).onDown.add(() => this.player.turn(this.treeColors[0]));
-            this.game.input.keyboard.addKey(Phaser.Keyboard.TWO).onDown.add(() => this.player.turn(this.treeColors[1]));
-            this.game.input.keyboard.addKey(Phaser.Keyboard.THREE).onDown.add(() => this.player.turn(this.treeColors[2]));
-            this.game.input.keyboard.addKey(Phaser.Keyboard.FOUR).onDown.add(() => this.player.turn(this.treeColors[3]));
-            this.game.input.keyboard.addKey(Phaser.Keyboard.FIVE).onDown.add(() => this.player.turn(this.treeColors[4]));
+            this.playerScores = this.players.map((player, i) =>
+                this.game.add.text(
+                    this.game.width - 80,
+                    10 + i * 25,
+                    (player.score(null) / this.fullScore * 100).toPrecision(2) + "%",
+                    { font: "20px Tahoma", fill: player.color, align: "right" }));
+
+            this.game.input.keyboard.addKey(Phaser.Keyboard.ONE).onDown.add(() => this.playerTurn(this.treeColors[0]));
+            this.game.input.keyboard.addKey(Phaser.Keyboard.TWO).onDown.add(() => this.playerTurn(this.treeColors[1]));
+            this.game.input.keyboard.addKey(Phaser.Keyboard.THREE).onDown.add(() => this.playerTurn(this.treeColors[2]));
+            this.game.input.keyboard.addKey(Phaser.Keyboard.FOUR).onDown.add(() => this.playerTurn(this.treeColors[3]));
+            this.game.input.keyboard.addKey(Phaser.Keyboard.FIVE).onDown.add(() => this.playerTurn(this.treeColors[4]));
+        }
+
+        playerTurn(color: TreeColor) {
+            this.humanPlayer.turn(color);
+            console.log(this.humanPlayer.score(null));
+
+            this.players.map((player, i) =>
+                this.playerScores[i].text = (player.score(null) / this.fullScore * 100).toPrecision(2) + "%");
         }
     }
 
