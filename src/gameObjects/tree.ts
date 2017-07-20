@@ -19,7 +19,7 @@
         highlighted: boolean;
 
         constructor(game: Phaser.Game, x: number, y: number, color: TreeColor, size: number) {
-            let bitmapData = game.add.bitmapData(200, 200);
+            let bitmapData = game.add.bitmapData(50, 50);
             super(game, x, y, bitmapData);
 
             this.bitmapData = bitmapData;
@@ -34,14 +34,26 @@
         }
 
         update() {
-            let centerX = this.bitmapData.width / 2;
-            let centerY = this.bitmapData.height / 2;
+            const centerX = this.bitmapData.width / 2;
+            const centerY = this.bitmapData.height / 2;
             this.bitmapData.context.beginPath();
             this.bitmapData.context.fillStyle = this.color.color;
             this.bitmapData.context.strokeStyle = this.owner ? this.owner.color : "#000000";
             this.bitmapData.context.arc(centerX, centerY, this.size, 0, Math.PI * 2);
             this.bitmapData.context.fill();
             this.bitmapData.context.stroke();
+
+            for (let i = 0; i < this.neighbours.length; i++) {
+                const t = this.neighbours[i];
+
+                this.bitmapData.context.beginPath();
+                this.bitmapData.context.moveTo(centerX, centerY);
+                this.bitmapData.context.lineTo(centerX + t.x - this.x, centerY + t.y - this.y);
+                this.bitmapData.context.strokeStyle = "black";
+                this.bitmapData.context.stroke();
+            }
+
+
 
             this.bitmapData.dirty = true;
         }

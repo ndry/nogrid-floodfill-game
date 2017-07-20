@@ -46,7 +46,7 @@ var $safeprojectname$;
             __extends(Tree, _super);
             function Tree(game, x, y, color, size) {
                 var _this = this;
-                var bitmapData = game.add.bitmapData(200, 200);
+                var bitmapData = game.add.bitmapData(50, 50);
                 _this = _super.call(this, game, x, y, bitmapData) || this;
                 _this.bitmapData = bitmapData;
                 _this.color = color;
@@ -67,6 +67,14 @@ var $safeprojectname$;
                 this.bitmapData.context.arc(centerX, centerY, this.size, 0, Math.PI * 2);
                 this.bitmapData.context.fill();
                 this.bitmapData.context.stroke();
+                for (var i = 0; i < this.neighbours.length; i++) {
+                    var t = this.neighbours[i];
+                    this.bitmapData.context.beginPath();
+                    this.bitmapData.context.moveTo(centerX, centerY);
+                    this.bitmapData.context.lineTo(centerX + t.x - this.x, centerY + t.y - this.y);
+                    this.bitmapData.context.strokeStyle = "black";
+                    this.bitmapData.context.stroke();
+                }
                 this.bitmapData.dirty = true;
             };
             return Tree;
@@ -165,6 +173,7 @@ var $safeprojectname$;
                 this.load.image('map1-mask', './assets/maps/map1-mask.png');
             };
             Level01.prototype.create = function () {
+                var _this = this;
                 this.physics.startSystem(Phaser.Physics.ARCADE);
                 this.map = this.add.sprite(0, 0, 'map1');
                 this.mapMaskBmd = this.game.make.bitmapData(this.map.width, this.map.height);
@@ -184,7 +193,7 @@ var $safeprojectname$;
                 var _loop_1 = function () {
                     var x = Math.floor(this_1.map.x + this_1.map.width * Math.random());
                     var y = Math.floor(this_1.map.y + this_1.map.height * Math.random());
-                    var size = 4 + 10 * Math.random();
+                    var size = 4 + 10 * Math.random() * Math.random() * Math.random();
                     var color = Client.getRandomElement(this_1.treeColors);
                     var maskAllowed = this_1.mapMaskBmd.getPixel32(x, y) === 4278190080;
                     var treesAllowed = this_1.trees
@@ -204,6 +213,34 @@ var $safeprojectname$;
                     _loop_1();
                 }
                 this.trees[0].owner = this.player;
+                this.trees.forEach(function (tree) {
+                    var closeTrees = _this.trees
+                        .filter(function (t) { return tree !== t && t.position.distance(tree.position) - (t.size + tree.size) < 12; })
+                        .sort(function (at, bt) { return tree.position.distance(at.position) - tree.position.distance(bt.position); });
+                    var hiddenTrees = [];
+                    var _loop_2 = function (i) {
+                        var t = closeTrees[i];
+                        var dt = t.position.clone().subtract(tree.position.x, tree.position.y);
+                        var at = Math.asin(t.size / dt.getMagnitude());
+                        hiddenTrees = hiddenTrees.concat(closeTrees
+                            .slice(i + 1)
+                            .filter(function (t2) {
+                            var dt2 = t2.position.clone().subtract(tree.position.x, tree.position.y);
+                            var at2 = Math.asin(t2.size / dt2.getMagnitude());
+                            var minAllowedAngle = at + at2;
+                            var a = Math.acos(dt.dot(dt2) / (dt.getMagnitude() * dt2.getMagnitude()));
+                            return a < minAllowedAngle;
+                        }));
+                    };
+                    for (var i = 0; i < closeTrees.length; i++) {
+                        _loop_2(i);
+                    }
+                    closeTrees
+                        .filter(function (t) { return hiddenTrees.indexOf(t) < 0; })
+                        .forEach(function (t) {
+                        tree.neighbours.push(t);
+                    });
+                });
                 this.game.debug.text("Use Right and Left arrow keys to move the bat", 0, this.world.height, "red");
             };
             return Level01;
