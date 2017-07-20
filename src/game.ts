@@ -3,7 +3,7 @@
     export class GameEngine extends Phaser.Game {
 
         constructor() {
-            super(1024, 800, Phaser.AUTO, 'content', null);
+            super(888, 804, Phaser.AUTO, 'content', null);
 
             this.state.add('Boot', Boot, false);
             this.state.add('Preloader', Preloader, false);

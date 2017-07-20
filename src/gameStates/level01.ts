@@ -25,8 +25,7 @@
             this.mapMaskBmd.draw('map1-mask', 0, 0);
             this.mapMaskBmd.update();
 
-            this.player = new Player(this.game, this.world.centerX, this.world.centerX);
-            this.player.anchor.setTo(0, 5);
+            this.player = new Player(this.game);
 
             this.treeColors = [
                 new TreeColor("green"),
@@ -42,7 +41,7 @@
             while (failedCount < 500) {
                 let x = Math.floor(this.map.x + this.map.width * Math.random());
                 let y = Math.floor(this.map.y + this.map.height * Math.random());
-                let size = 4 + 10 * Math.random() * Math.random() * Math.random();
+                let size = 8 + 20 * Math.random() * Math.random() * Math.random();
                 let color = getRandomElement(this.treeColors);
 
                 let maskAllowed = this.mapMaskBmd.getPixel32(x, y) === 4278190080;
@@ -60,12 +59,11 @@
                 }
 
             }
-            this.trees[0].owner = this.player;
 
             this.trees.forEach(tree => {
 
                 const closeTrees = this.trees
-                    .filter(t => tree !== t && t.position.distance(tree.position) - (t.size + tree.size) < 12)
+                    .filter(t => tree !== t && t.position.distance(tree.position) - (t.size + tree.size) < 24)
                     .sort((at, bt) => tree.position.distance(at.position) - tree.position.distance(bt.position));
 
                 let hiddenTrees: Tree[] = [];
@@ -97,11 +95,20 @@
                     .filter(t => hiddenTrees.indexOf(t) < 0)
                     .forEach(t => {
                         tree.neighbours.push(t);
+                        t.neighbours.push(tree);
                     });
             });
 
+            this.player.baseTrees.push(this.trees[0]);
+            this.player.turn(this.trees[0].color);
 
             this.game.debug.text("Use Right and Left arrow keys to move the bat", 0, this.world.height, "red");
+
+            this.game.input.keyboard.addKey(Phaser.Keyboard.ONE).onDown.add(() => this.player.turn(this.treeColors[0]));
+            this.game.input.keyboard.addKey(Phaser.Keyboard.TWO).onDown.add(() => this.player.turn(this.treeColors[1]));
+            this.game.input.keyboard.addKey(Phaser.Keyboard.THREE).onDown.add(() => this.player.turn(this.treeColors[2]));
+            this.game.input.keyboard.addKey(Phaser.Keyboard.FOUR).onDown.add(() => this.player.turn(this.treeColors[3]));
+            this.game.input.keyboard.addKey(Phaser.Keyboard.FIVE).onDown.add(() => this.player.turn(this.treeColors[4]));
         }
     }
 

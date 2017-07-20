@@ -1,41 +1,38 @@
 ﻿module $safeprojectname$.Client {
 
-    export class Player extends Phaser.Sprite {
+    export class Player {
+        game: Phaser.Game;
         color: Style;
+        baseTrees: Tree[];
 
-        constructor(game: Phaser.Game, x: number, y: number) {
-            super(game, x, y, 'level01-sprites', 1);
-
+        constructor(game: Phaser.Game) {
+            this.game = game;
             this.color = "red";
 
-            this.anchor.setTo(0.5);
-            this.animations.add('fly', [0, 1], 5, true);
-            game.add.existing(this);
-            // Physics
-            game.physics.enable(this);
-            this.body.collideWorldBounds = true;
-            this.body.setCircle(20);
+            this.baseTrees = [];
         }
 
-        update() {
-            this.body.velocity.x = 0;
-            if (this.game.input.keyboard.isDown(Phaser.Keyboard.LEFT)) {
-                this.body.velocity.x = -50;
-                this.animations.play('fly');
-                if (this.scale.x === -1) {
-                    this.scale.x = 1;
+        turn(color: TreeColor) {
+            let visited = new Set<Tree>();
+            let queue = this.baseTrees.slice();
+
+            while (queue.length > 0) {
+                const tree = queue.shift();
+
+                if (visited.has(tree)) {
+                    continue;
                 }
-            } else if (this.game.input.keyboard.isDown(Phaser.Keyboard.RIGHT)) {
-                this.body.velocity.x = 50;
-                this.animations.play('fly');
-                if (this.scale.x === 1) {
-                    this.scale.x = -1;
-                }
-            } else {
-                this.animations.frame = 0;
+
+                visited.add(tree);
+
+                tree.owner = this;
+                tree.color = color;
+
+                tree.neighbours
+                    .filter(t => (t.color === color && t.owner === null) || (t.owner === this))
+                    .forEach(t => queue.push(t));
             }
         }
-
     }
 
 }
