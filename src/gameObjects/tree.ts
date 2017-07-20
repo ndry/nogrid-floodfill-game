@@ -59,6 +59,7 @@
             this.bitmapData.context.beginPath();
             this.bitmapData.context.fillStyle = gradient;
             this.bitmapData.context.strokeStyle = this.owner ? this.owner.color : "#000000";
+            this.bitmapData.context.lineWidth = this.owner ? 2 : 1;
             this.bitmapData.context.arc(centerX, centerY, this.size, 0, Math.PI * 2);
             this.bitmapData.context.fill();
             this.bitmapData.context.stroke();
@@ -69,7 +70,7 @@
                 this.bitmapData.context.beginPath();
                 this.bitmapData.context.moveTo(centerX, centerY);
                 this.bitmapData.context.lineTo(centerX + t.x - this.x, centerY + t.y - this.y);
-                this.bitmapData.context.strokeStyle = "black";
+                this.bitmapData.context.strokeStyle = "rgba(0, 0, 0, .2)";
                 this.bitmapData.context.stroke();
             }
 
