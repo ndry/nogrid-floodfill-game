@@ -157,44 +157,34 @@ var $safeprojectname$;
                 this.load.image('map1', './assets/maps/map1.png');
                 this.load.image('map1-mask', './assets/maps/map1-mask.png');
             }
-            create() {
-                this.physics.startSystem(Phaser.Physics.ARCADE);
-                this.map = this.add.sprite(0, 0, 'map1');
-                this.mapMaskBmd = this.game.make.bitmapData(this.map.width, this.map.height);
-                this.mapMaskBmd.draw('map1-mask', 0, 0);
-                this.mapMaskBmd.update();
-                this.humanPlayer = new Client.Player(this.game, "red");
-                this.players = [this.humanPlayer, new Client.Player(this.game, "blue")];
-                this.treeColors = [
-                    new Client.TreeColor("green"),
-                    new Client.TreeColor("yellow"),
-                    new Client.TreeColor("white"),
-                    new Client.TreeColor("orange"),
-                    new Client.TreeColor("pink")
-                ];
-                this.trees = [];
+            static generateTrees(game, map, mapMaskBmd, treeColors, players) {
+                const trees = [];
                 let failedCount = 0;
                 while (failedCount < 500) {
-                    let x = Math.floor(this.map.x + this.map.width * Math.random());
-                    let y = Math.floor(this.map.y + this.map.height * Math.random());
-                    let size = 8 + 20 * Math.random() * Math.random() * Math.random();
-                    let color = Client.getRandomElement(this.treeColors);
-                    let maskAllowed = this.mapMaskBmd.getPixel32(x, y) === 4278190080;
-                    let treesAllowed = this.trees
+                    const x = Math.floor(map.x + map.width * Math.random());
+                    const y = Math.floor(map.y + map.height * Math.random());
+                    const size = 8 + 20 * Math.random() * Math.random() * Math.random();
+                    const color = Client.getRandomElement(treeColors);
+                    const maskAllowed = mapMaskBmd.getPixel32(x, y) === 4278190080;
+                    const treesAllowed = trees
                         .filter(t => t.position.distance(new Phaser.Point(x, y)) < (t.size + size))
                         .length ===
                         0;
                     if (maskAllowed && treesAllowed) {
                         failedCount = 0;
-                        const tree = new Client.Tree(this.game, x, y, color, size);
-                        this.trees.push(tree);
+                        const tree = new Client.Tree(game, x, y, color, size);
+                        trees.push(tree);
                     }
                     else {
                         failedCount++;
                     }
                 }
-                this.trees.forEach(tree => {
-                    const closeTrees = this.trees
+                players.forEach(player => player.baseTrees.push(Client.getRandomElement(trees)));
+                return trees;
+            }
+            static processTrees(trees) {
+                trees.forEach(tree => {
+                    const closeTrees = trees
                         .filter(t => tree !== t && t.position.distance(tree.position) - (t.size + tree.size) < 24)
                         .sort((at, bt) => tree.position.distance(at.position) - tree.position.distance(bt.position));
                     let hiddenTrees = [];
@@ -219,9 +209,26 @@ var $safeprojectname$;
                         t.neighbours.push(tree);
                     });
                 });
+            }
+            create() {
+                this.physics.startSystem(Phaser.Physics.ARCADE);
+                this.map = this.add.sprite(0, 0, 'map1');
+                this.mapMaskBmd = this.game.make.bitmapData(this.map.width, this.map.height);
+                this.mapMaskBmd.draw('map1-mask', 0, 0);
+                this.mapMaskBmd.update();
+                this.humanPlayer = new Client.Player(this.game, "red");
+                this.players = [this.humanPlayer, new Client.Player(this.game, "blue")];
+                this.treeColors = [
+                    new Client.TreeColor("green"),
+                    new Client.TreeColor("yellow"),
+                    new Client.TreeColor("white"),
+                    new Client.TreeColor("orange"),
+                    new Client.TreeColor("pink")
+                ];
+                this.trees = Level01.generateTrees(this.game, this.map, this.mapMaskBmd, this.treeColors, this.players);
+                Level01.processTrees(this.trees);
                 this.fullScore = this.trees.map(t => t.score).reduce((p, c) => p + c, 0);
                 this.players.forEach(player => {
-                    player.baseTrees.push(Client.getRandomElement(this.trees));
                     player.turn(player.baseTrees[0].color);
                 });
                 this.playerScores = this.players.map((player, i) => this.game.add.text(this.game.width - 80, 10 + i * 25, (player.score(null) / this.fullScore * 100).toPrecision(2) + "%", { font: "20px Tahoma", fill: player.color, align: "right" }));
