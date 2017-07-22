@@ -1,0 +1,12 @@
+{
+  "private": true,
+  "name": "nogrid-floodfill-game",
+  "dependencies": {
+    "@types/nano": "^6.2.0",
+    "@types/uuid": "^3.4.0",
+    "browser-nano": "^6.1.4-alpha",
+    "browser-request": "^0.3.3",
+    "nano": "^6.4.0",
+    "uuid": "^3.1.0"
+  }
+}

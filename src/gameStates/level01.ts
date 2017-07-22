@@ -47,7 +47,11 @@
                 }
             }
 
-            players.forEach(player => player.baseTrees.push(getRandomElement(trees)));
+            players.forEach(player => {
+                const tree = getRandomElement(trees);
+                player.baseTrees.push(tree);
+                tree.owner = player;
+            });
 
             return trees;
         }

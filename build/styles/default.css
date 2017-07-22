@@ -6,3 +6,7 @@
 span {
     font-style: italic;
 }
+
+#game-id {
+    width: 100%;
+}
