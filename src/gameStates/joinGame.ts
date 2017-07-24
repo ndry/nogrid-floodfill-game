@@ -13,12 +13,12 @@
 
         currentPlayerIndex: number;
         thisPlayerIndex: number;
-        players: Player[];
+        players: $safeprojectname$.Client.Player_obs[];
         playerScores: Phaser.Text[];
 
         treeColors: TreeColor[];
         treeColorButtons: Phaser.Sprite[];
-        trees: Tree[];
+        trees: $safeprojectname$.Client.Tree_obs[];
 
         fullScore: number;
 
@@ -36,7 +36,7 @@
             this.mapMaskBmd.draw('map1-mask', 0, 0);
             this.mapMaskBmd.update();
 
-            this.players = [new Player(this.game, "red"), new Player(this.game, "blue")];
+            this.players = [new $safeprojectname$.Client.Player_obs(this.game, "red"), new $safeprojectname$.Client.Player_obs(this.game, "blue")];
             this.currentPlayerIndex = 0;
             this.thisPlayerIndex = 0;
 
@@ -62,7 +62,7 @@
 
                     this.trees = body.trees.map(treeData => {
                         const color = this.treeColors.find(c => c.color === treeData.color);
-                        const tree = new Tree(this.game, treeData.x, treeData.y, color, treeData.size);
+                        const tree = new $safeprojectname$.Client.Tree_obs(this.game, treeData.x, treeData.y, color, treeData.size);
                         if (treeData.owner) {
                             const player = this.players.find(p => p.color === treeData.owner);
                             tree.owner = player;
@@ -71,7 +71,7 @@
                         return tree;
                     });
 
-                    Level01.processTrees(this.trees);
+                    HostGame.processTrees(this.trees);
 
 
                     this.fullScore = this.trees.map(t => t.score).reduce((p, c) => p + c, 0);

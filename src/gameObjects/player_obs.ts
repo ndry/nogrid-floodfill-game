@@ -1,9 +1,9 @@
 ﻿module $safeprojectname$.Client {
 
-    export class Player {
+    export class Player_obs {
         game: Phaser.Game;
         color: string;
-        baseTrees: Tree[];
+        baseTrees: $safeprojectname$.Client.Tree_obs[];
 
         constructor(game: Phaser.Game, color: string) {
             this.game = game;
@@ -12,8 +12,8 @@
             this.baseTrees = [];
         }
 
-        walkTrees(fn: (tree: Tree, step: number) => Tree[]) {
-            const visited = new Set<Tree>();
+        walkTrees(fn: (tree: $safeprojectname$.Client.Tree_obs, step: number) => $safeprojectname$.Client.Tree_obs[]) {
+            const visited = new Set<$safeprojectname$.Client.Tree_obs>();
             const queue = this.baseTrees.map(tree => ({ tree, step: 0 }));
 
             while (queue.length > 0) {
@@ -32,20 +32,19 @@
 
         turn(color: TreeColor) {
             this.walkTrees((tree, step) => {
-                tree.colorWaves.push({
-                    start: this.game.time.time,
-                    step: step,
-                    color: color.color, 
-                    justOwned: tree.owner !== this
-                });
-                if (tree.owner !== this) {
+                tree.switchStart = this.game.time.time;
+                if (tree.owner === this) {
+                    tree.switchOrder = -1;
+                    tree.blinkOrder = step;
+                } else {
+                    tree.switchOrder = step;
+                    tree.blinkOrder = -1;
                     tree.owner = this;
-                    tree.highlightColor = this.color;
                 }
-                tree.data.color = color;
+                tree.color = color;
 
                 return tree.neighbours
-                    .filter(t => (t.data.color === color && t.owner === null) || (t.owner === this));
+                    .filter(t => (t.color === color && t.owner === null) || (t.owner === this));
             });
         }
 
@@ -55,7 +54,7 @@
                 score += tree.score;
                 
                 return tree.neighbours
-                    .filter(t => (t.data.color === color && t.owner === null) || (t.owner === this));
+                    .filter(t => (t.color === color && t.owner === null) || (t.owner === this));
             });
             return score;
         }

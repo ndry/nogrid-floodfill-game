@@ -7,6 +7,7 @@
     "browser-nano": "^6.1.4-alpha",
     "browser-request": "^0.3.3",
     "nano": "^6.4.0",
+    "phaser": "^2.6.2",
     "uuid": "^3.1.0"
   }
 }

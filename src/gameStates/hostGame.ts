@@ -16,14 +16,115 @@
 
         currentPlayerIndex: number;
         thisPlayerIndex: number;
-        players: Player[];
+        players: $safeprojectname$.Client.Player_obs[];
         playerScores: Phaser.Text[];
 
         treeColors: TreeColor[];
         treeColorButtons: Phaser.Sprite[];
-        trees: Tree[];
+        trees: $safeprojectname$.Client.Tree_obs[];
 
         fullScore: number;
+
+        static generateTrees(game: Phaser.Game, map: Phaser.Sprite, mapMaskBmd: Phaser.BitmapData, treeColors: TreeColor[], players:
+            $safeprojectname$.Client.Player_obs[]) {
+            const trees: $safeprojectname$.Client.Tree_obs[] = [];
+
+            const chunkSide = 100;
+            const chunks: $safeprojectname$.Client.Tree_obs[][][] = [];
+            for (let cx = 0; cx < map.width / chunkSide; cx++) {
+                chunks[cx] = [];
+                for (let cy = 0; cy < map.height / chunkSide; cy++) {
+                    chunks[cx][cy] = [];
+                }
+            }
+
+            let failedCount = 0;
+            while (failedCount < 500) {
+                const x = Math.floor(map.x + map.width * Math.random());
+                const y = Math.floor(map.y + map.height * Math.random());
+                const size = 8 + 20 * Math.random() * Math.random() * Math.random();
+                const color = getRandomElement(treeColors);
+
+                const cx = Math.floor((x - map.x) / chunkSide);
+                const cy = Math.floor((y - map.y) / chunkSide);
+
+                let allowed = true;
+                for (let dcx = -1; dcx <= 1; dcx++) {
+                    for (let dcy = -1; dcy <= 1; dcy++) {
+                        const chunk = (chunks[cx + dcx] || [])[cy + dcy] || [];
+                        allowed = !chunk.find(t => t.position.distance(new Phaser.Point(x, y)) < (t.size + size));
+                        if (!allowed) {
+                            break;
+                        }
+                    }
+                    if (!allowed) {
+                        break;
+                    }
+                }
+
+                allowed = allowed && mapMaskBmd.getPixel32(x, y) === 4278190080;
+
+                if (allowed) {
+                    failedCount = 0;
+                    const tree = new $safeprojectname$.Client.Tree_obs(game, x, y, color, size);
+
+                    const chunk = chunks[cx][cy] = (chunks[cx] || [])[cy] || [];
+                    chunk.push(tree);
+                    trees.push(tree);
+                } else {
+                    failedCount++;
+                }
+            }
+
+            players.forEach(player => {
+                const tree = getRandomElement(trees);
+                player.baseTrees.push(tree);
+                tree.owner = player;
+            });
+
+            return trees;
+        }
+
+        static processTrees(trees: $safeprojectname$.Client.Tree_obs[]) {
+            trees.forEach(tree => {
+
+                const closeTrees = trees
+                    .filter(t => tree !== t && t.position.distance(tree.position) - (t.size + tree.size) < 24)
+                    .sort((at, bt) => tree.position.distance(at.position) - tree.position.distance(bt.position));
+
+                let hiddenTrees: $safeprojectname$.Client.Tree_obs[] = [];
+
+                for (let i = 0; i < closeTrees.length; i++) {
+                    const t = closeTrees[i];
+
+                    const dt = t.position.clone().subtract(tree.position.x, tree.position.y);
+                    const at = Math.asin(t.size / dt.getMagnitude());
+
+                    hiddenTrees = hiddenTrees.concat(
+                        closeTrees
+                        .slice(i + 1)
+                        .filter(t2 => {
+
+                            const dt2 = t2.position.clone().subtract(tree.position.x, tree.position.y);
+                            const at2 = Math.asin(t2.size / dt2.getMagnitude());
+
+                            const minAllowedAngle = at + at2;
+
+                            var a = Math.acos(dt.dot(dt2) / (dt.getMagnitude() * dt2.getMagnitude()));
+
+                            return a < minAllowedAngle;
+                        }));
+                }
+
+
+                closeTrees
+                    .filter(t => hiddenTrees.indexOf(t) < 0)
+                    .forEach(t => {
+                        tree.neighbours.push(t);
+                        t.neighbours.push(tree);
+                    });
+            });
+        }
 
         create() {
             this.gameId = uuidv4();
@@ -39,7 +140,7 @@
             this.mapMaskBmd.draw('map1-mask', 0, 0);
             this.mapMaskBmd.update();
 
-            this.players = [new Player(this.game, "red"), new Player(this.game, "blue")];
+            this.players = [new $safeprojectname$.Client.Player_obs(this.game, "red"), new $safeprojectname$.Client.Player_obs(this.game, "blue")];
             this.currentPlayerIndex = 0;
             this.thisPlayerIndex = 1;
 
@@ -51,7 +152,7 @@
                 new TreeColor("pink")
             ];
 
-            this.trees = Level01.generateTrees(this.game, this.map, this.mapMaskBmd, this.treeColors, this.players);
+            this.trees = HostGame.generateTrees(this.game, this.map, this.mapMaskBmd, this.treeColors, this.players);
 
             this.couch = nano({
                 url: 'https://couchdb-6aa960.smileupps.com',
@@ -73,7 +174,7 @@
             
 
 
-            Level01.processTrees(this.trees);
+            HostGame.processTrees(this.trees);
             
 
             this.fullScore = this.trees.map(t => t.score).reduce((p, c) => p + c, 0);
