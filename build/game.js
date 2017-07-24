@@ -24,7 +24,7 @@ var $safeprojectname$;
 (function ($safeprojectname$) {
     var Client;
     (function (Client) {
-        class Player {
+        class Player_obs {
             constructor(game, color) {
                 this.game = game;
                 this.color = color;
@@ -45,19 +45,19 @@ var $safeprojectname$;
             }
             turn(color) {
                 this.walkTrees((tree, step) => {
-                    tree.colorWaves.push({
-                        start: this.game.time.time,
-                        step: step,
-                        color: color.color,
-                        justOwned: tree.owner !== this
-                    });
-                    if (tree.owner !== this) {
-                        tree.owner = this;
-                        tree.highlightColor = this.color;
+                    tree.switchStart = this.game.time.time;
+                    if (tree.owner === this) {
+                        tree.switchOrder = -1;
+                        tree.blinkOrder = step;
                     }
-                    tree.data.color = color;
+                    else {
+                        tree.switchOrder = step;
+                        tree.blinkOrder = -1;
+                        tree.owner = this;
+                    }
+                    tree.color = color;
                     return tree.neighbours
-                        .filter(t => (t.data.color === color && t.owner === null) || (t.owner === this));
+                        .filter(t => (t.color === color && t.owner === null) || (t.owner === this));
                 });
             }
             score(color) {
@@ -65,12 +65,12 @@ var $safeprojectname$;
                 this.walkTrees(tree => {
                     score += tree.score;
                     return tree.neighbours
-                        .filter(t => (t.data.color === color && t.owner === null) || (t.owner === this));
+                        .filter(t => (t.color === color && t.owner === null) || (t.owner === this));
                 });
                 return score;
             }
         }
-        Client.Player = Player;
+        Client.Player_obs = Player_obs;
     })(Client = $safeprojectname$.Client || ($safeprojectname$.Client = {}));
 })($safeprojectname$ || ($safeprojectname$ = {}));
 var $safeprojectname$;
@@ -250,6 +250,59 @@ var $safeprojectname$;
 (function ($safeprojectname$) {
     var Client;
     (function (Client) {
+        class Player {
+            constructor(game, color) {
+                this.game = game;
+                this.color = color;
+                this.baseTrees = [];
+            }
+            walkTrees(fn) {
+                const visited = new Set();
+                const queue = this.baseTrees.map(tree => ({ tree, step: 0 }));
+                while (queue.length > 0) {
+                    const entry = queue.shift();
+                    if (visited.has(entry.tree)) {
+                        continue;
+                    }
+                    visited.add(entry.tree);
+                    fn(entry.tree, entry.step)
+                        .forEach(t => queue.push({ tree: t, step: entry.step + 1 }));
+                }
+            }
+            turn(color) {
+                this.walkTrees((tree, step) => {
+                    tree.colorWaves.push({
+                        start: this.game.time.time,
+                        step: step,
+                        color: color.color,
+                        justOwned: tree.owner !== this
+                    });
+                    if (tree.owner !== this) {
+                        tree.owner = this;
+                        tree.highlightColor = this.color;
+                    }
+                    tree.data.color = color;
+                    return tree.neighbours
+                        .filter(t => (t.data.color === color && t.owner === null) || (t.owner === this));
+                });
+            }
+            score(color) {
+                let score = 0;
+                this.walkTrees(tree => {
+                    score += tree.score;
+                    return tree.neighbours
+                        .filter(t => (t.data.color === color && t.owner === null) || (t.owner === this));
+                });
+                return score;
+            }
+        }
+        Client.Player = Player;
+    })(Client = $safeprojectname$.Client || ($safeprojectname$.Client = {}));
+})($safeprojectname$ || ($safeprojectname$ = {}));
+var $safeprojectname$;
+(function ($safeprojectname$) {
+    var Client;
+    (function (Client) {
         class Boot extends Phaser.State {
             preload() {
             }
@@ -261,6 +314,131 @@ var $safeprojectname$;
             }
         }
         Client.Boot = Boot;
+    })(Client = $safeprojectname$.Client || ($safeprojectname$.Client = {}));
+})($safeprojectname$ || ($safeprojectname$ = {}));
+var $safeprojectname$;
+(function ($safeprojectname$) {
+    var Client;
+    (function (Client) {
+        class JoinGame extends Phaser.State {
+            preload() {
+                super.preload();
+                this.load.image('map1', './assets/maps/map1.png');
+                this.load.image('map1-mask', './assets/maps/map1-mask.png');
+            }
+            create() {
+                const gidEl = document.getElementById("game-id");
+                this.gameId = gidEl.value;
+                this.physics.startSystem(Phaser.Physics.ARCADE);
+                this.map = this.add.sprite(0, 0, 'map1');
+                this.mapMaskBmd = this.game.make.bitmapData(this.map.width, this.map.height);
+                this.mapMaskBmd.draw('map1-mask', 0, 0);
+                this.mapMaskBmd.update();
+                this.players = [new $safeprojectname$.Client.Player_obs(this.game, "red"), new $safeprojectname$.Client.Player_obs(this.game, "blue")];
+                this.currentPlayerIndex = 0;
+                this.thisPlayerIndex = 0;
+                this.treeColors = [
+                    new Client.TreeColor("green"),
+                    new Client.TreeColor("yellow"),
+                    new Client.TreeColor("white"),
+                    new Client.TreeColor("orange"),
+                    new Client.TreeColor("pink")
+                ];
+                this.couch = nano({
+                    url: 'https://couchdb-6aa960.smileupps.com',
+                    cors: true
+                });
+                const db = this.couch.use("nogrid-floodfill-game");
+                db.get(this.gameId, (err, body) => {
+                    if (err) {
+                        console.log(err);
+                        return;
+                    }
+                    this.trees = body.trees.map(treeData => {
+                        const color = this.treeColors.find(c => c.color === treeData.color);
+                        const tree = new $safeprojectname$.Client.Tree_obs(this.game, treeData.x, treeData.y, color, treeData.size);
+                        if (treeData.owner) {
+                            const player = this.players.find(p => p.color === treeData.owner);
+                            tree.owner = player;
+                            player.baseTrees.push(tree);
+                        }
+                        return tree;
+                    });
+                    Client.HostGame.processTrees(this.trees);
+                    this.fullScore = this.trees.map(t => t.score).reduce((p, c) => p + c, 0);
+                    this.players.forEach(player => {
+                        player.turn(player.baseTrees[0].color);
+                    });
+                    this.playerScores = this.players.map((player, i) => this.game.add.text(this.game.width - 80, 10 + i * 25, (this.currentPlayerIndex === i ? "> " : "") +
+                        (player.score(null) / this.fullScore * 100).toPrecision(2) +
+                        "%", { font: "20px Tahoma", fill: player.color, align: "right" }));
+                });
+                this.treeColorButtons = this.treeColors.map((color, i) => {
+                    const bitmapData = this.game.add.bitmapData(50, 50);
+                    bitmapData.context.beginPath();
+                    bitmapData.context.fillStyle = color.color;
+                    bitmapData.context.rect(0, 0, bitmapData.width, bitmapData.height);
+                    bitmapData.context.fill();
+                    this.game.cache.addBitmapData("btn" + i, bitmapData);
+                    const btn = this.game.add.sprite(this.game.width - 80, 100 + i * 70, bitmapData);
+                    btn.inputEnabled = true;
+                    btn.events.onInputUp.add(() => { this.playerTurn(color); }, this);
+                    return btn;
+                });
+                this.game.input.keyboard.addKey(Phaser.Keyboard.ONE).onDown.add(() => this.playerTurn(this.treeColors[0]));
+                this.game.input.keyboard.addKey(Phaser.Keyboard.TWO).onDown.add(() => this.playerTurn(this.treeColors[1]));
+                this.game.input.keyboard.addKey(Phaser.Keyboard.THREE).onDown.add(() => this.playerTurn(this.treeColors[2]));
+                this.game.input.keyboard.addKey(Phaser.Keyboard.FOUR).onDown.add(() => this.playerTurn(this.treeColors[3]));
+                this.game.input.keyboard.addKey(Phaser.Keyboard.FIVE).onDown.add(() => this.playerTurn(this.treeColors[4]));
+                setTimeout(this.poll.bind(this));
+                this.treeColorButtons.forEach(btn => btn.visible = this.currentPlayerIndex === this.thisPlayerIndex);
+            }
+            poll() {
+                const db = this.couch.use("nogrid-floodfill-game");
+                db.changes({
+                    feed: "longpoll",
+                    include_docs: true,
+                    filter: "main/turns",
+                    gameId: this.gameId,
+                    since: this.lastSeq || 0
+                }, (err, body) => {
+                    setTimeout(this.poll.bind(this));
+                    if (err) {
+                        console.log(err);
+                        return;
+                    }
+                    body.results.forEach(result => {
+                        this.applyTurn(result.doc.color);
+                    });
+                    this.lastSeq = body.last_seq;
+                    this.treeColorButtons.forEach(btn => btn.visible = this.currentPlayerIndex === this.thisPlayerIndex);
+                });
+            }
+            applyTurn(colorData) {
+                const color = this.treeColors.find(c => c.color === colorData);
+                this.players[this.currentPlayerIndex].turn(color);
+                this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
+                this.players.forEach((player, i) => {
+                    this.playerScores[i].text =
+                        (this.currentPlayerIndex === i ? "> " : "") +
+                            (player.score(null) / this.fullScore * 100).toFixed(2) +
+                            "%";
+                });
+            }
+            playerTurn(color) {
+                if (this.currentPlayerIndex !== this.thisPlayerIndex) {
+                    return;
+                }
+                this.treeColorButtons.forEach(btn => btn.visible = false);
+                const db = this.couch.use("nogrid-floodfill-game");
+                db.insert({
+                    type: "turn",
+                    gameId: this.gameId,
+                    color: color.color
+                });
+            }
+        }
+        Client.JoinGame = JoinGame;
     })(Client = $safeprojectname$.Client || ($safeprojectname$.Client = {}));
 })($safeprojectname$ || ($safeprojectname$ = {}));
 var $safeprojectname$;
@@ -461,131 +639,6 @@ var $safeprojectname$;
             }
         }
         Client.HostGame = HostGame;
-    })(Client = $safeprojectname$.Client || ($safeprojectname$.Client = {}));
-})($safeprojectname$ || ($safeprojectname$ = {}));
-var $safeprojectname$;
-(function ($safeprojectname$) {
-    var Client;
-    (function (Client) {
-        class JoinGame extends Phaser.State {
-            preload() {
-                super.preload();
-                this.load.image('map1', './assets/maps/map1.png');
-                this.load.image('map1-mask', './assets/maps/map1-mask.png');
-            }
-            create() {
-                const gidEl = document.getElementById("game-id");
-                this.gameId = gidEl.value;
-                this.physics.startSystem(Phaser.Physics.ARCADE);
-                this.map = this.add.sprite(0, 0, 'map1');
-                this.mapMaskBmd = this.game.make.bitmapData(this.map.width, this.map.height);
-                this.mapMaskBmd.draw('map1-mask', 0, 0);
-                this.mapMaskBmd.update();
-                this.players = [new $safeprojectname$.Client.Player_obs(this.game, "red"), new $safeprojectname$.Client.Player_obs(this.game, "blue")];
-                this.currentPlayerIndex = 0;
-                this.thisPlayerIndex = 0;
-                this.treeColors = [
-                    new Client.TreeColor("green"),
-                    new Client.TreeColor("yellow"),
-                    new Client.TreeColor("white"),
-                    new Client.TreeColor("orange"),
-                    new Client.TreeColor("pink")
-                ];
-                this.couch = nano({
-                    url: 'https://couchdb-6aa960.smileupps.com',
-                    cors: true
-                });
-                const db = this.couch.use("nogrid-floodfill-game");
-                db.get(this.gameId, (err, body) => {
-                    if (err) {
-                        console.log(err);
-                        return;
-                    }
-                    this.trees = body.trees.map(treeData => {
-                        const color = this.treeColors.find(c => c.color === treeData.color);
-                        const tree = new $safeprojectname$.Client.Tree_obs(this.game, treeData.x, treeData.y, color, treeData.size);
-                        if (treeData.owner) {
-                            const player = this.players.find(p => p.color === treeData.owner);
-                            tree.owner = player;
-                            player.baseTrees.push(tree);
-                        }
-                        return tree;
-                    });
-                    Client.HostGame.processTrees(this.trees);
-                    this.fullScore = this.trees.map(t => t.score).reduce((p, c) => p + c, 0);
-                    this.players.forEach(player => {
-                        player.turn(player.baseTrees[0].color);
-                    });
-                    this.playerScores = this.players.map((player, i) => this.game.add.text(this.game.width - 80, 10 + i * 25, (this.currentPlayerIndex === i ? "> " : "") +
-                        (player.score(null) / this.fullScore * 100).toPrecision(2) +
-                        "%", { font: "20px Tahoma", fill: player.color, align: "right" }));
-                });
-                this.treeColorButtons = this.treeColors.map((color, i) => {
-                    const bitmapData = this.game.add.bitmapData(50, 50);
-                    bitmapData.context.beginPath();
-                    bitmapData.context.fillStyle = color.color;
-                    bitmapData.context.rect(0, 0, bitmapData.width, bitmapData.height);
-                    bitmapData.context.fill();
-                    this.game.cache.addBitmapData("btn" + i, bitmapData);
-                    const btn = this.game.add.sprite(this.game.width - 80, 100 + i * 70, bitmapData);
-                    btn.inputEnabled = true;
-                    btn.events.onInputUp.add(() => { this.playerTurn(color); }, this);
-                    return btn;
-                });
-                this.game.input.keyboard.addKey(Phaser.Keyboard.ONE).onDown.add(() => this.playerTurn(this.treeColors[0]));
-                this.game.input.keyboard.addKey(Phaser.Keyboard.TWO).onDown.add(() => this.playerTurn(this.treeColors[1]));
-                this.game.input.keyboard.addKey(Phaser.Keyboard.THREE).onDown.add(() => this.playerTurn(this.treeColors[2]));
-                this.game.input.keyboard.addKey(Phaser.Keyboard.FOUR).onDown.add(() => this.playerTurn(this.treeColors[3]));
-                this.game.input.keyboard.addKey(Phaser.Keyboard.FIVE).onDown.add(() => this.playerTurn(this.treeColors[4]));
-                setTimeout(this.poll.bind(this));
-                this.treeColorButtons.forEach(btn => btn.visible = this.currentPlayerIndex === this.thisPlayerIndex);
-            }
-            poll() {
-                const db = this.couch.use("nogrid-floodfill-game");
-                db.changes({
-                    feed: "longpoll",
-                    include_docs: true,
-                    filter: "main/turns",
-                    gameId: this.gameId,
-                    since: this.lastSeq || 0
-                }, (err, body) => {
-                    setTimeout(this.poll.bind(this));
-                    if (err) {
-                        console.log(err);
-                        return;
-                    }
-                    body.results.forEach(result => {
-                        this.applyTurn(result.doc.color);
-                    });
-                    this.lastSeq = body.last_seq;
-                    this.treeColorButtons.forEach(btn => btn.visible = this.currentPlayerIndex === this.thisPlayerIndex);
-                });
-            }
-            applyTurn(colorData) {
-                const color = this.treeColors.find(c => c.color === colorData);
-                this.players[this.currentPlayerIndex].turn(color);
-                this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
-                this.players.forEach((player, i) => {
-                    this.playerScores[i].text =
-                        (this.currentPlayerIndex === i ? "> " : "") +
-                            (player.score(null) / this.fullScore * 100).toFixed(2) +
-                            "%";
-                });
-            }
-            playerTurn(color) {
-                if (this.currentPlayerIndex !== this.thisPlayerIndex) {
-                    return;
-                }
-                this.treeColorButtons.forEach(btn => btn.visible = false);
-                const db = this.couch.use("nogrid-floodfill-game");
-                db.insert({
-                    type: "turn",
-                    gameId: this.gameId,
-                    color: color.color
-                });
-            }
-        }
-        Client.JoinGame = JoinGame;
     })(Client = $safeprojectname$.Client || ($safeprojectname$.Client = {}));
 })($safeprojectname$ || ($safeprojectname$ = {}));
 var $safeprojectname$;
@@ -810,7 +863,8 @@ var $safeprojectname$;
             }
             playerTurn(color) {
                 this.humanPlayer.turn(color);
-                this.players[1].turn(Client.getRandomElement(this.treeColors));
+                this.players[1].turn(this.treeColors
+                    .reduce((a, b) => (this.players[1].score(a) > this.players[1].score(b)) ? a : b));
                 this.players.map((player, i) => this.playerScores[i].text = (player.score(null) / this.fullScore * 100).toPrecision(2) + "%");
             }
             render() {
@@ -878,59 +932,6 @@ var $safeprojectname$;
             return array[Math.floor(Math.random() * array.length)];
         }
         Client.getRandomElement = getRandomElement;
-    })(Client = $safeprojectname$.Client || ($safeprojectname$.Client = {}));
-})($safeprojectname$ || ($safeprojectname$ = {}));
-var $safeprojectname$;
-(function ($safeprojectname$) {
-    var Client;
-    (function (Client) {
-        class Player_obs {
-            constructor(game, color) {
-                this.game = game;
-                this.color = color;
-                this.baseTrees = [];
-            }
-            walkTrees(fn) {
-                const visited = new Set();
-                const queue = this.baseTrees.map(tree => ({ tree, step: 0 }));
-                while (queue.length > 0) {
-                    const entry = queue.shift();
-                    if (visited.has(entry.tree)) {
-                        continue;
-                    }
-                    visited.add(entry.tree);
-                    fn(entry.tree, entry.step)
-                        .forEach(t => queue.push({ tree: t, step: entry.step + 1 }));
-                }
-            }
-            turn(color) {
-                this.walkTrees((tree, step) => {
-                    tree.switchStart = this.game.time.time;
-                    if (tree.owner === this) {
-                        tree.switchOrder = -1;
-                        tree.blinkOrder = step;
-                    }
-                    else {
-                        tree.switchOrder = step;
-                        tree.blinkOrder = -1;
-                        tree.owner = this;
-                    }
-                    tree.color = color;
-                    return tree.neighbours
-                        .filter(t => (t.color === color && t.owner === null) || (t.owner === this));
-                });
-            }
-            score(color) {
-                let score = 0;
-                this.walkTrees(tree => {
-                    score += tree.score;
-                    return tree.neighbours
-                        .filter(t => (t.color === color && t.owner === null) || (t.owner === this));
-                });
-                return score;
-            }
-        }
-        Client.Player_obs = Player_obs;
     })(Client = $safeprojectname$.Client || ($safeprojectname$.Client = {}));
 })($safeprojectname$ || ($safeprojectname$ = {}));
 //# sourceMappingURL=game.js.map

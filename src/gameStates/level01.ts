@@ -307,7 +307,12 @@
 
         playerTurn(color: TreeColor) {
             this.humanPlayer.turn(color);
-            this.players[1].turn(getRandomElement(this.treeColors));
+
+
+            this.players[1].turn(
+                this.treeColors
+                .reduce((a, b) =>
+                    (this.players[1].score(a) > this.players[1].score(b)) ? a : b));
 
             this.players.map((player, i) =>
                 this.playerScores[i].text = (player.score(null) / this.fullScore * 100).toPrecision(2) + "%");
