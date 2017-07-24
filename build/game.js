@@ -11,7 +11,7 @@ var $safeprojectname$;
                 this.state.add('Level01', Client.Level01, false);
                 this.state.add('HostGame', Client.HostGame, false);
                 this.state.add('JoinGame', Client.JoinGame, false);
-                this.state.start('Boot');
+                this.state.start('Level01');
             }
         }
         Client.GameEngine = GameEngine;

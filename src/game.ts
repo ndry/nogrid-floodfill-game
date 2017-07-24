@@ -14,7 +14,7 @@ module $safeprojectname$.Client {
             this.state.add('HostGame', HostGame, false);
             this.state.add('JoinGame', JoinGame, false);
 
-            this.state.start('Boot');
+            this.state.start('Level01');
 
         }
     }
