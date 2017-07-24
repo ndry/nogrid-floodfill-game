@@ -22,7 +22,16 @@
         fullScore: number;
 
         static generateTrees(game: Phaser.Game, map: Phaser.Sprite, mapMaskBmd: Phaser.BitmapData, treeColors: TreeColor[], players: Player[]) {
-            const trees = [];
+            const trees: Tree[] = [];
+
+            const chunkSide = 100;
+            const chunks: Tree[][][] = [];
+            for (let cx = 0; cx < map.width / chunkSide; cx++) {
+                chunks[cx] = [];
+                for (let cy = 0; cy < map.height / chunkSide; cy++) {
+                    chunks[cx][cy] = [];
+                }
+            }
 
             let failedCount = 0;
             while (failedCount < 500) {
@@ -31,16 +40,31 @@
                 const size = 8 + 20 * Math.random() * Math.random() * Math.random();
                 const color = getRandomElement(treeColors);
 
-                const maskAllowed = mapMaskBmd.getPixel32(x, y) === 4278190080;
-                const treesAllowed = trees
-                    .filter(t => t.position.distance(new Phaser.Point(x, y)) < (t.size + size))
-                    .length ===
-                    0;
+                const cx = Math.floor((x - map.x) / chunkSide);
+                const cy = Math.floor((y - map.y) / chunkSide);
 
-                if (maskAllowed && treesAllowed) {
+                let allowed = true;
+                for (let dcx = -1; dcx <= 1; dcx++) {
+                    for (let dcy = -1; dcy <= 1; dcy++) {
+                        const chunk = (chunks[cx + dcx] || [])[cy + dcy] || [];
+                        allowed = !chunk.find(t => t.position.distance(new Phaser.Point(x, y)) < (t.size + size));
+                        if (!allowed) {
+                            break;
+                        }
+                    }
+                    if (!allowed) {
+                        break;
+                    }
+                }
+
+                allowed = allowed && mapMaskBmd.getPixel32(x, y) === 4278190080;
+
+                if (allowed) {
                     failedCount = 0;
                     const tree = new Tree(game, x, y, color, size);
 
+                    const chunk = chunks[cx][cy] = (chunks[cx] || [])[cy] || [];
+                    chunk.push(tree);
                     trees.push(tree);
                 } else {
                     failedCount++;

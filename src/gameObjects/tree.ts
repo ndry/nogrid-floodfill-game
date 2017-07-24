@@ -53,16 +53,26 @@
                 centerX - this.size / 2,
                 centerY - this.size / 2,
                 this.size * 4);
-            gradient.addColorStop(0, this.color.color);
+            gradient.addColorStop(0, this.owner ? this.owner.color : this.color.color);
             gradient.addColorStop(1, 'black');
 
             this.bitmapData.context.beginPath();
             this.bitmapData.context.fillStyle = gradient;
-            this.bitmapData.context.strokeStyle = this.owner ? this.owner.color : "#000000";
-            this.bitmapData.context.lineWidth = this.owner ? 2 : 1;
             this.bitmapData.context.arc(centerX, centerY, this.size, 0, Math.PI * 2);
             this.bitmapData.context.fill();
-            this.bitmapData.context.stroke();
+
+            //if (this.owner) {
+            //    this.bitmapData.context.beginPath();
+            //    this.bitmapData.context.fillStyle = this.owner.color;
+            //    this.bitmapData.context.arc(centerX, centerY, 5, 0, Math.PI * 2);
+            //    this.bitmapData.context.fill();
+            //}
+
+            //this.bitmapData.context.beginPath();
+            //this.bitmapData.context.strokeStyle = this.owner ? this.owner.color : "#000000";
+            //this.bitmapData.context.lineWidth = this.owner ? 2 : 1;
+            //this.bitmapData.context.arc(centerX, centerY, this.size, 0, Math.PI * 2);
+            //this.bitmapData.context.stroke();
 
             for (let i = 0; i < this.neighbours.length; i++) {
                 const t = this.neighbours[i];

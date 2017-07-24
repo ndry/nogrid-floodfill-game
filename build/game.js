@@ -53,15 +53,12 @@ var $safeprojectname$;
                 this.bitmapData.context.arc(centerX + this.size / 2, centerY + this.size / 2, this.size, 0, Math.PI * 2);
                 this.bitmapData.context.fill();
                 var gradient = this.bitmapData.context.createRadialGradient(centerX - this.size / 2, centerY - this.size / 2, 0, centerX - this.size / 2, centerY - this.size / 2, this.size * 4);
-                gradient.addColorStop(0, this.color.color);
+                gradient.addColorStop(0, this.owner ? this.owner.color : this.color.color);
                 gradient.addColorStop(1, 'black');
                 this.bitmapData.context.beginPath();
                 this.bitmapData.context.fillStyle = gradient;
-                this.bitmapData.context.strokeStyle = this.owner ? this.owner.color : "#000000";
-                this.bitmapData.context.lineWidth = this.owner ? 2 : 1;
                 this.bitmapData.context.arc(centerX, centerY, this.size, 0, Math.PI * 2);
                 this.bitmapData.context.fill();
-                this.bitmapData.context.stroke();
                 for (let i = 0; i < this.neighbours.length; i++) {
                     const t = this.neighbours[i];
                     this.bitmapData.context.beginPath();
@@ -396,20 +393,41 @@ var $safeprojectname$;
             }
             static generateTrees(game, map, mapMaskBmd, treeColors, players) {
                 const trees = [];
+                const chunkSide = 100;
+                const chunks = [];
+                for (let cx = 0; cx < map.width / chunkSide; cx++) {
+                    chunks[cx] = [];
+                    for (let cy = 0; cy < map.height / chunkSide; cy++) {
+                        chunks[cx][cy] = [];
+                    }
+                }
                 let failedCount = 0;
                 while (failedCount < 500) {
                     const x = Math.floor(map.x + map.width * Math.random());
                     const y = Math.floor(map.y + map.height * Math.random());
                     const size = 8 + 20 * Math.random() * Math.random() * Math.random();
                     const color = Client.getRandomElement(treeColors);
-                    const maskAllowed = mapMaskBmd.getPixel32(x, y) === 4278190080;
-                    const treesAllowed = trees
-                        .filter(t => t.position.distance(new Phaser.Point(x, y)) < (t.size + size))
-                        .length ===
-                        0;
-                    if (maskAllowed && treesAllowed) {
+                    const cx = Math.floor((x - map.x) / chunkSide);
+                    const cy = Math.floor((y - map.y) / chunkSide);
+                    let allowed = true;
+                    for (let dcx = -1; dcx <= 1; dcx++) {
+                        for (let dcy = -1; dcy <= 1; dcy++) {
+                            const chunk = (chunks[cx + dcx] || [])[cy + dcy] || [];
+                            allowed = !chunk.find(t => t.position.distance(new Phaser.Point(x, y)) < (t.size + size));
+                            if (!allowed) {
+                                break;
+                            }
+                        }
+                        if (!allowed) {
+                            break;
+                        }
+                    }
+                    allowed = allowed && mapMaskBmd.getPixel32(x, y) === 4278190080;
+                    if (allowed) {
                         failedCount = 0;
                         const tree = new Client.Tree(game, x, y, color, size);
+                        const chunk = chunks[cx][cy] = (chunks[cx] || [])[cy] || [];
+                        chunk.push(tree);
                         trees.push(tree);
                     }
                     else {
