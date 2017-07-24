@@ -5,7 +5,7 @@ module $safeprojectname$.Client {
     export class GameEngine extends Phaser.Game {
         
         constructor() {
-            super(888 + 100, 804, Phaser.AUTO, 'content', null);
+            super(888*2 + 100, 804, Phaser.AUTO, 'content', null);
 
             this.state.add('Boot', Boot, false);
             this.state.add('Preloader', Preloader, false);
