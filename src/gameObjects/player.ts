@@ -53,7 +53,7 @@
             let score = 0;
             this.walkTrees(tree => {
                 score += tree.score;
-                
+
                 return tree.neighbours
                     .filter(t => (t.data.color === color && t.owner === null) || (t.owner === this));
             });

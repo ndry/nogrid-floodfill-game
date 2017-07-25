@@ -812,10 +812,41 @@ var $safeprojectname$;
                 this.game.input.keyboard.addKey(Phaser.Keyboard.FIVE).onDown.add(() => this.playerTurn(this.treeColors[4]));
             }
             playerTurn(color) {
-                this.humanPlayer.turn(color);
-                this.players[1].turn(this.treeColors
+                this.turn(this.humanPlayer, color);
+                this.turn(this.players[1], this.treeColors
                     .reduce((a, b) => (this.players[1].score(a) > this.players[1].score(b)) ? a : b));
                 this.players.map((player, i) => this.playerScores[i].text = (player.score(null) / this.fullScore * 100).toPrecision(2) + "%");
+            }
+            turn(player, color) {
+                player.turn(color);
+                const reachable = new Set();
+                this.players.forEach(p => {
+                    if (p === player) {
+                        return;
+                    }
+                    p.walkTrees(tree => {
+                        reachable.add(tree);
+                        return tree.neighbours
+                            .filter(t => (t.owner === null) || (t.owner === p));
+                    });
+                });
+                player.walkTrees((tree, step) => {
+                    if (tree.owner === null) {
+                        tree.colorWaves.push({
+                            start: this.game.time.time,
+                            step: step,
+                            color: color.color,
+                            justOwned: tree.owner !== player
+                        });
+                    }
+                    if (tree.owner !== player) {
+                        tree.owner = player;
+                        tree.highlightColor = player.color;
+                    }
+                    tree.data.color = color;
+                    return tree.neighbours
+                        .filter(t => !reachable.has(t));
+                });
             }
             render() {
                 this.game.debug.text("fps" + this.game.time.fps.toFixed(2), 2, 14, "white");
