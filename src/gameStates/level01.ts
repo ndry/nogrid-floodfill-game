@@ -205,6 +205,10 @@
         create() {
             this.time.advancedTiming = true;
 
+            this.scale.pageAlignVertically = true;
+            this.scale.pageAlignHorizontally = true;
+            this.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
+
             this.physics.startSystem(Phaser.Physics.ARCADE);
 
             this.map = this.add.sprite(0, 0, 'map1');
