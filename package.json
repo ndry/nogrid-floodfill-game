@@ -2,12 +2,18 @@
   "private": true,
   "name": "nogrid-floodfill-game",
   "dependencies": {
-    "@types/nano": "^6.2.0",
-    "@types/uuid": "^3.4.0",
-    "browser-nano": "^6.1.4-alpha",
-    "browser-request": "^0.3.3",
-    "nano": "^6.4.0",
-    "phaser": "^2.6.2",
-    "uuid": "^3.1.0"
+    "phaser-ce": "^2.8.3"
+  },
+  "devDependencies": {
+    "http-server": "^0.10.0",
+    "jspm": "^0.16.53"
+  },
+  "scripts": {
+    "start": "http-server -p 45834 -o http://127.0.0.1:45834/"
+  },
+  "jspm": {
+    "configFile": "jspm-config.js",
+    "dependencies": {},
+    "devDependencies": {}
   }
 }
