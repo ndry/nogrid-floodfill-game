@@ -1,0 +1,32 @@
+﻿<!DOCTYPE html>
+
+<html lang="en">
+<head>
+
+<meta charset="utf-8" />
+<title>$safeprojectname$</title>
+<link rel="stylesheet" href="styles/default.css" type="text/css" />
+
+
+<script src="./node_modules/phaser-ce/build/phaser.min.js"></script> 
+<script src="./jspm_packages/system.js"></script>
+<script src="./jspm-config.js"></script>
+<script>
+    window.onload = () => {
+        System
+            .import('../app.js/game.js')
+            .then(null, console.error.bind(console));
+    };
+</script>
+
+
+</head>
+<body>
+    
+
+<div id="content"></div>
+<div id="game-id-container"><input id="game-id" /></div>
+    
+
+</body>
+</html>

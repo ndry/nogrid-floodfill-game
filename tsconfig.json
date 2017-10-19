@@ -1,0 +1,18 @@
+{
+    "compilerOptions": {
+        "noImplicitAny": false,
+
+        "sourceMap": true,
+        "watch": true,
+        
+        "module": "system",
+        "target": "es2017",
+        "outDir": "./app.js/"
+    },
+    "files": [
+        "./node_modules/phaser-ce/typescript/phaser.comments.d.ts"
+    ],
+    "include": [
+        "./app.ts/**/*"
+    ]
+}
